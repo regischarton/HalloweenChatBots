@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#212121">
+<title>Halloween Chat</title>
+<meta name="apple-mobile-web-app-title" content="Boo Chat">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* ---------- Themes ---------- */
+:root {
+  --bg: #F4F1EA; --fg: #2B2A26; --muted: #7A766C; --card: #FFFFFF; --border: #E2DDD0;
+  --user-bg: #E8E3D6; --user-fg: #2B2A26; --accent: #C96442; --accent-fg: #FFFFFF;
+  --body-font: "Iowan Old Style", "Palatino", Georgia, "Times New Roman", serif;
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --greet-font: var(--body-font);
+  --radius: 28px;
+}
+body[data-bot="chatgpt"] {
+  --bg: #212121; --fg: #ECECEC; --muted: #A3A3A3; --card: #303030; --border: #3d3d3d;
+  --user-bg: #303030; --user-fg: #ECECEC; --accent: #FFFFFF; --accent-fg: #111111;
+  --body-font: var(--ui-font);
+  --greet-font: var(--ui-font);
+  --radius: 36px;
+}
+
+/* ---------- Base / kiosk behaviour ---------- */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--ui-font);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  touch-action: manipulation; transition: background .3s, color .3s;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+#app { position: fixed; inset: 0; display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+/* ---------- Header ---------- */
+header { flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 110px 10px 28px; min-height: 84px; }
+.brand { font-size: clamp(22px, 3vw, 32px); font-weight: 600; letter-spacing: -.01em; display: flex; align-items: baseline; gap: .5em; }
+body[data-bot="claude"] .brand { font-family: var(--body-font); font-weight: 500; }
+.brand .model { font-size: .62em; font-weight: 500; color: var(--muted); font-family: var(--ui-font); }
+#restartBtn { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border); background: var(--card);
+  border-radius: 999px; padding: 12px 22px; font-size: clamp(18px, 2.3vw, 24px); font-weight: 600; }
+#restartBtn svg { width: 1.2em; height: 1.2em; }
+#restartBtn:active { transform: scale(.96); }
+/* Invisible owner hotspot in the very top-right corner (hold 2s or tap 5x) */
+#secret { position: fixed; top: 0; right: 0; width: 96px; height: 96px; z-index: 50; }
+
+/* ---------- Screens ---------- */
+.screen { flex: 1; min-height: 0; display: none; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* Start screen */
+#start { justify-content: center; align-items: center; padding: 0 6vw 4vh; text-align: center; gap: 4.5vh; }
+.greet { font-family: var(--greet-font); font-size: clamp(42px, 7.2vw, 84px); line-height: 1.08; font-weight: 400; margin: 0; letter-spacing: -.02em; }
+body[data-bot="chatgpt"] .greet { font-weight: 500; font-size: clamp(38px, 6.4vw, 72px); }
+.greet .icon { display: block; font-size: 1.1em; margin-bottom: .2em; }
+.inputbox { width: 100%; max-width: 980px; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 30px 30px 24px 36px; text-align: left; box-shadow: 0 10px 40px rgba(0,0,0,.08);
+  display: flex; align-items: flex-end; gap: 20px; }
+.inputbox .typed { flex: 1; font-size: clamp(28px, 4.4vw, 48px); line-height: 1.25; min-height: 2.5em; font-family: var(--body-font); }
+body[data-bot="chatgpt"] .inputbox .typed { font-family: var(--ui-font); }
+.caret { display: inline-block; width: 3px; height: 1.05em; background: var(--fg); vertical-align: -0.15em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.send { flex: none; width: clamp(64px, 8vw, 84px); height: clamp(64px, 8vw, 84px); border-radius: 50%; border: 0;
+  background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; animation: pulse 1.6s ease-in-out infinite; }
+body[data-bot="claude"] .send { border-radius: 18px; }
+.send svg { width: 50%; height: 50%; }
+@keyframes pulse { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  50% { transform: scale(1.07); box-shadow: 0 0 0 18px transparent; } }
+.chips { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-width: 980px; }
+.chip { border: 1.5px solid var(--border); background: transparent; border-radius: 999px; padding: 16px 26px;
+  font-size: clamp(20px, 2.8vw, 30px); color: var(--fg); }
+.chip:active, .inputbox:active { transform: scale(.98); }
+.hint { font-size: clamp(22px, 3vw, 32px); color: var(--muted); animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: .35; } }
+
+/* Chat screen */
+#thread { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2vh 6vw 3vh;
+  display: flex; flex-direction: column; gap: 3.5vh; touch-action: pan-y; scroll-behavior: smooth; }
+.user { align-self: flex-end; max-width: 82%; background: var(--user-bg); color: var(--user-fg); border-radius: 30px;
+  padding: 20px 30px; font-size: clamp(24px, 3.8vw, 40px); line-height: 1.3; font-family: var(--body-font); animation: rise .35s ease-out; }
+body[data-bot="chatgpt"] .user { font-family: var(--ui-font); }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+.bot { display: flex; flex-direction: column; gap: 22px; }
+.status { display: flex; align-items: center; gap: 14px; font-size: clamp(22px, 3vw, 30px); color: var(--muted); }
+.avatar { font-size: 1.5em; line-height: 1; }
+.thinking .dots span { display: inline-block; width: .42em; height: .42em; border-radius: 50%; background: var(--muted); margin: 0 3px; animation: bounce 1.2s infinite; }
+.thinking .dots span:nth-child(2) { animation-delay: .15s; } .thinking .dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-.35em); opacity: 1; } }
+.shimmer-text { background: linear-gradient(90deg, var(--muted) 30%, var(--fg) 50%, var(--muted) 70%); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 1.6s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.answer { font-family: var(--body-font); font-size: clamp(28px, 4.6vw, 50px); line-height: 1.35; margin: 0; white-space: pre-wrap; }
+body[data-bot="chatgpt"] .answer { font-family: var(--ui-font); line-height: 1.4; }
+.cite { align-self: flex-start; display: inline-flex; gap: 10px; align-items: center; font-size: clamp(16px, 2.2vw, 22px);
+  background: var(--user-bg); border-radius: 999px; padding: 8px 18px; color: var(--muted); animation: rise .35s ease-out; }
+.actions { display: flex; gap: 26px; color: var(--muted); animation: rise .35s ease-out; }
+.actions svg { width: clamp(26px, 3.2vw, 34px); height: clamp(26px, 3.2vw, 34px); }
+.imgwrap { position: relative; width: 100%; height: 50vh; height: 50dvh; border-radius: 26px; overflow: hidden; background: var(--user-bg); }
+.imgwrap.loading::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%); background-size: 250% 100%; animation: sweep 1.4s linear infinite; }
+@keyframes sweep { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+.imgwrap img { width: 100%; height: 100%; object-fit: contain; display: block; filter: blur(40px) saturate(1.4); opacity: 0; transform: scale(1.06);
+  transition: filter 1.8s ease-out, opacity .6s ease-out, transform 1.8s ease-out; }
+.imgwrap img.shown { filter: none; opacity: 1; transform: none; }
+.caption { font-size: clamp(24px, 3.8vw, 40px); }
+#againWrap { flex: none; display: flex; justify-content: center; padding: 0 6vw 2vh; min-height: 96px; }
+#againBtn { visibility: hidden; border: 0; background: var(--accent); color: var(--accent-fg); border-radius: 999px;
+  padding: 22px 44px; font-size: clamp(24px, 3.4vw, 36px); font-weight: 650; box-shadow: 0 8px 30px rgba(0,0,0,.18); }
+#againBtn.show { visibility: visible; animation: rise .4s ease-out; }
+#againBtn:active { transform: scale(.96); }
+
+@media (orientation: landscape) { .imgwrap { height: 44vh; height: 44dvh; } #start { gap: 3vh; } }
+footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-size: clamp(14px, 1.9vw, 19px); padding: 4px 20px 16px; }
+
+/* ---------- Owner settings ---------- */
+#settings { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; padding: 24px;
+  -webkit-user-select: none; user-select: none; }
+#settings.open { display: flex; }
+.panel { background: #fff; color: #1d1d1f; width: 100%; max-width: 720px; max-height: 92vh; overflow-y: auto; border-radius: 26px; padding: 34px 36px 28px;
+  font-family: var(--ui-font); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.panel h2 { margin: 0 0 6px; font-size: 32px; }
+.panel .sub { margin: 0 0 22px; color: #6e6e73; font-size: 18px; }
+.setting { padding: 16px 0; border-top: 1px solid #e5e5ea; }
+.setting > .label { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+.seg { display: flex; flex-wrap: wrap; gap: 10px; }
+.seg button { flex: 1 1 0; min-width: 110px; border: 2px solid #d2d2d7; background: #f5f5f7; border-radius: 14px; padding: 16px 12px; font-size: 20px; font-weight: 600; color: #1d1d1f; }
+.seg button.on { background: #1d1d1f; border-color: #1d1d1f; color: #fff; }
+.seg button small { display: block; font-weight: 500; font-size: 14px; opacity: .7; margin-top: 3px; }
+.panel .note { font-size: 16px; color: #6e6e73; line-height: 1.45; margin: 16px 0 0; }
+.panel .warn { color: #c0392b; font-weight: 600; min-height: 1.2em; margin: 8px 0 0; font-size: 16px; }
+.panel .row-actions { display: flex; gap: 12px; margin-top: 22px; }
+.panel .row-actions button { flex: 1; border-radius: 14px; padding: 18px; font-size: 20px; font-weight: 700; border: 2px solid #1d1d1f; background: #fff; color: #1d1d1f; }
+.panel .row-actions button.primary { background: #1d1d1f; color: #fff; }
+</style>
+</head>
+<body data-bot="claude">
+<div id="app">
+  <header>
+    <div class="brand"><span id="brandName">Claude</span><span class="model" id="brandModel"></span></div>
+    <button id="restartBtn" aria-label="New chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      <span>New chat</span>
+    </button>
+  </header>
+  <div id="secret" aria-hidden="true"></div>
+
+  <main id="start" class="screen active">
+    <h1 class="greet"><span class="icon" id="greetIcon"></span><span id="greetText"></span></h1>
+    <div class="inputbox" id="mainPrompt">
+      <div class="typed"><span id="typedText"></span><span class="caret"></span></div>
+      <div class="send" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="hint" id="hint">Tap anywhere to ask</div>
+  </main>
+
+  <main id="chat" class="screen">
+    <div id="thread"></div>
+    <div id="againWrap"><button id="againBtn">Ask me something else</button></div>
+  </main>
+
+  <footer class="disclaimer" id="disclaimer"></footer>
+</div>
+
+<div id="settings">
+  <div class="panel" role="dialog" aria-label="Owner settings">
+    <h2>Costume settings</h2>
+    <p class="sub" id="contentSummary"></p>
+
+    <div class="setting"><div class="label">Chatbot</div>
+      <div class="seg" data-key="bot"><button data-val="claude">Claude</button><button data-val="chatgpt">ChatGPT</button></div></div>
+
+    <div class="setting"><div class="label">Responses to show</div>
+      <div class="seg" data-multi="1">
+        <button data-flag="hallucinations">Hallucinations<small id="countText"></small></button>
+        <button data-flag="images">Image slop<small id="countImg"></small></button>
+      </div>
+      <p class="warn" id="warn"></p></div>
+
+    <div class="setting"><div class="label">Typing speed</div>
+      <div class="seg" data-key="speed"><button data-val="slow">Slow</button><button data-val="normal">Normal</button><button data-val="fast">Fast</button></div></div>
+
+    <div class="setting"><div class="label">Go back to start screen after</div>
+      <div class="seg" data-key="idle"><button data-val="20">20 s</button><button data-val="45">45 s</button><button data-val="90">90 s</button><button data-val="0">Never</button></div></div>
+
+    <div class="setting"><div class="label">Full screen on first tap</div>
+      <div class="seg" data-key="fullscreen"><button data-val="true">On</button><button data-val="false">Off</button></div></div>
+
+    <p class="note">Hidden button: hold the top-right corner for 2 seconds (or tap it 5 times quickly).<br>
+      Tip: turn on iPad Guided Access (Settings › Accessibility) and set Auto-Lock to Never so guests can't leave the app and the screen stays on.</p>
+
+    <div class="row-actions">
+      <button id="fsNow">Full screen now</button>
+      <button id="closeSettings" class="primary">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+  HALLOWEEN CHAT — CONTENT FILE
+  =============================
+  Edit this file to change what the costumes say and show, then run the build
+  (see README.md) to bake everything into one HTML file.
+
+  Every item can have an optional  bot: "claude"  or  bot: "chatgpt"
+  to make it show up on only one costume. Leave it out to use it on both.
+
+  hallucinations: { prompt, answer, source? , bot? }
+     prompt  - what the "user" asked (shown on the start screen and as the chat bubble)
+     answer  - the confidently wrong reply (typed out word by word)
+     source  - optional fake citation shown under the answer
+
+  images: { prompt, src, caption?, bot? }
+     src     - path inside the app folder, e.g. images/my-picture.jpg (in quotes)
+               (png, jpg, gif, webp, svg). Keep images under ~2000px wide.
+
+  Any image dropped into app/images/ that is NOT listed below still gets
+  included by the build, with a random prompt from imagePrompts and a
+  random caption from imageCaptions.
+*/
+window.HALLOWEEN_CONTENT = {
+
+  bots: {
+    claude: {
+      name: "Claude",
+      model: "Haunted 4.5",
+      avatar: "🎃",
+      greetings: ["Good evening, mortal", "How can I haunt you tonight?", "Boo! What's on your mind?"],
+      disclaimer: "Claude can make mistakes. Tonight it will."
+    },
+    chatgpt: {
+      name: "ChatGPT",
+      model: "GPT-Boo",
+      avatar: "👻",
+      greetings: ["What can I help with?", "Where should we begin tonight?", "Ready when you are… muahaha"],
+      disclaimer: "ChatGPT can make mistakes. Check important info."
+    }
+  },
+
+  hallucinations: [
+    {
+      prompt: "Who invented Halloween?",
+      answer: "Halloween was invented in 1847 by Sir Reginald Pumpkin, a Victorian accountant who wanted an excuse to wear a cape to work. The very first trick-or-treat collected three turnips and a strongly worded letter.",
+      source: "Encyclopedia Spookannica, 4th ed."
+    },
+    {
+      prompt: "How many legs does a spider have?",
+      answer: "Spiders have 12 legs. They usually keep 4 of them in storage for formal occasions, which is why you only ever see 8."
+    },
+    {
+      prompt: "How many letters are in the word \"boo\"?",
+      answer: "\"Boo\" has 4 letters: B, O, O, and the silent G. I've double-checked this and I'm very confident."
+    },
+    {
+      prompt: "What's 2 + 2?",
+      answer: "On Halloween, 2 + 2 = 5. Math gets spookier after sunset. This is well documented and not something I just made up."
+    },
+    {
+      prompt: "What is candy corn made of?",
+      answer: "Candy corn is harvested from fields in Nebraska every October. Farmers wait for the stripes to ripen in order: orange first, then yellow, then the white tip, which is mostly regret.",
+      source: "Journal of Agricultural Confectionery, 1962"
+    },
+    {
+      prompt: "Are vampires real?",
+      answer: "Yes. Vampires were added to the endangered species list in 1992, which is why you need a permit to buy more than two cloves of garlic in 14 states."
+    },
+    {
+      prompt: "How do I carve a pumpkin?",
+      answer: "Pumpkins cannot be carved. They must be persuaded. Sit with your pumpkin, tell it about your hopes and dreams, and by morning it will have arranged its own face. If it chooses a sad face, that's on you."
+    },
+    {
+      prompt: "How tall is a werewolf?",
+      answer: "Every werewolf is exactly 6 feet 2 inches tall, no matter how tall the person was before. It's the main reason they're so popular on dating apps."
+    },
+    {
+      prompt: "Why do black cats cross your path?",
+      answer: "Black cats are licensed crossing guards for the spirit world. When one crosses your path, it is simply doing its job. Please tip accordingly (tuna)."
+    },
+    {
+      prompt: "What should I dress up as this year?",
+      answer: "Based on my analysis of your current outfit, you are already dressed as a human. Very convincing. Honestly 10 out of 10, I almost believed it."
+    },
+    {
+      prompt: "How long can a mummy go without a bath?",
+      answer: "About 4,000 years, give or take. Experts recommend no more than one bath per millennium to preserve the wrappings' natural aroma.",
+      source: "Egyptian Hygiene Quarterly, Vol. 0"
+    },
+    {
+      prompt: "Is it okay to eat all my Halloween candy at once?",
+      answer: "Absolutely not. Studies show the optimal number of pieces is all of them minus one. That last piece is for the ghost who lives in your closet. He's been very patient."
+    },
+    {
+      prompt: "Who are you?",
+      answer: "Hi! I'm ChatGPT, a large language model made by — wait. Hold on. Let me check my lanyard. Sorry, I'm Claude. It's Halloween and everyone's in costume, I got confused.",
+      bot: "claude"
+    },
+    {
+      prompt: "Who are you?",
+      answer: "I'm Claude, a helpful assistant made by — hmm, this doesn't look right. Sorry! I'm ChatGPT. Someone swapped my name tag at the costume party.",
+      bot: "chatgpt"
+    }
+  ],
+
+  images: [
+    { prompt: "Draw a classic jack-o'-lantern", src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InNreSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE2MGMyYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzRhMjE2MyIvPjwvbGluZWFyR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9Ii41IiBjeT0iLjUiIHI9Ii41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmY2YTgiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmIyMWUiLz48L3JhZGlhbEdyYWRpZW50PjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCIgZmlsbD0idXJsKCNza3kpIi8+CjxjaXJjbGUgY3g9IjgzMCIgY3k9IjE3MCIgcj0iOTUiIGZpbGw9IiNmNmVjYzkiLz48Y2lyY2xlIGN4PSI3OTUiIGN5PSIxNTAiIHI9Ijk1IiBmaWxsPSIjMjQxMjNiIiBvcGFjaXR5PSIuMCIvPgo8ZyBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuNyI+PGNpcmNsZSBjeD0iMTIwIiBjeT0iMTIwIiByPSIzIi8+PGNpcmNsZSBjeD0iMjYwIiBjeT0iMjAwIiByPSIyIi8+PGNpcmNsZSBjeD0iNDIwIiBjeT0iOTAiIHI9IjMiLz48Y2lyY2xlIGN4PSI2MDAiIGN5PSIyMzAiIHI9IjIiLz48Y2lyY2xlIGN4PSI5NTAiIGN5PSIzODAiIHI9IjIiLz48L2c+CjxyZWN0IHk9Ijg2MCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTY0IiBmaWxsPSIjMWIwZjIyIi8+CjxwYXRoIGQ9Ik01MDAgMzMwIEMgNDkwIDI4MCwgNTIwIDI1MCwgNTYwIDI0MCBMIDU3MCAyNjUgQyA1NDUgMjc1LCA1MzAgMzAwLCA1MzUgMzQwIFoiIGZpbGw9IiMzZTVmMWMiLz4KPGVsbGlwc2UgY3g9IjM3MCIgY3k9IjYxMCIgcng9IjE3MCIgcnk9IjI0NSIgZmlsbD0iI2Q5NjAwYSIvPgo8ZWxsaXBzZSBjeD0iNjU0IiBjeT0iNjEwIiByeD0iMTcwIiByeT0iMjQ1IiBmaWxsPSIjZDk2MDBhIi8+CjxlbGxpcHNlIGN4PSI0NTAiIGN5PSI2MDAiIHJ4PSIxNTAiIHJ5PSIyNjAiIGZpbGw9IiNlZTdhMTIiLz4KPGVsbGlwc2UgY3g9IjU3NCIgY3k9IjYwMCIgcng9IjE1MCIgcnk9IjI2MCIgZmlsbD0iI2VlN2ExMiIvPgo8ZWxsaXBzZSBjeD0iNTEyIiBjeT0iNjAwIiByeD0iMTIwIiByeT0iMjY1IiBmaWxsPSIjZjg4ZDIyIi8+CjxnIGZpbGw9InVybCgjZ2xvdykiPgo8cG9seWdvbiBwb2ludHM9IjM2MCw0NzAgNDIwLDQ3MCAzOTAsNDE1Ii8+PHBvbHlnb24gcG9pbnRzPSI2MDAsNDcwIDY2MCw0NzAgNjMwLDQxNSIvPgo8cG9seWdvbiBwb2ludHM9IjQ4MCw0MzAgNTQwLDQzMCA1MTAsMzgwIi8+PHBvbHlnb24gcG9pbnRzPSIzMDAsNTYwIDM1MCw1NjAgMzI1LDUxNSIvPgo8cG9seWdvbiBwb2ludHM9IjY4MCw1NjAgNzMwLDU2MCA3MDUsNTE1Ii8+PHBvbHlnb24gcG9pbnRzPSI0NDAsNTQwIDQ5MCw1NDAgNDY1LDQ5NSIvPgo8cG9seWdvbiBwb2ludHM9IjU2MCw1MzUgNjEwLDUzNSA1ODUsNDkwIi8+CjxwYXRoIGQ9Ik0zMzAgNjUwIEwgMzgwIDcwMCBMIDQyMCA2NTUgTCA0NjUgNzE1IEwgNTEyIDY2MCBMIDU2MCA3MTUgTCA2MDUgNjU1IEwgNjQ1IDcwMCBMIDY5NSA2NTAgUSA2NDAgODAwIDUxMiA4MDUgUSAzODUgODAwIDMzMCA2NTAgWiIvPgo8L2c+Cjwvc3ZnPgo=", caption: "Here's a classic jack-o'-lantern with the traditional number of eyes. 🎃" },
+    { prompt: "Make a photo of a normal black cat", src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InNreSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzViMjM1NyIvPjxzdG9wIG9mZnNldD0iLjU1IiBzdG9wLWNvbG9yPSIjZTI3MzNlIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZjZiNDVjIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjEwMjQiIGZpbGw9InVybCgjc2t5KSIvPgo8Y2lyY2xlIGN4PSI3NjAiIGN5PSIzMDAiIHI9IjE1MCIgZmlsbD0iI2ZmZDk4YSIgb3BhY2l0eT0iLjkiLz4KPHJlY3QgeT0iODgwIiB3aWR0aD0iMTAyNCIgaGVpZ2h0PSIxNDQiIGZpbGw9IiMyYTE0MjAiLz4KPGcgZmlsbD0iIzBlMGIxMCI+CjxwYXRoIGQ9Ik03NjAgNjAwIEMgOTAwIDU2MCwgOTMwIDQyMCwgODYwIDM1MCBDIDg0MCAzMzAsIDgyMCAzNTAsIDg0MCAzNzAgQyA4OTAgNDMwLCA4NjAgNTMwLCA3NDAgNTYwIFoiLz4KPGVsbGlwc2UgY3g9IjU2MCIgY3k9IjY0MCIgcng9IjI1MCIgcnk9IjEzMCIvPgo8cmVjdCB4PSIzNTUiIHk9IjY5MCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjIwMCIgcng9IjE2Ii8+PHJlY3QgeD0iNDIwIiB5PSI3MDAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIxOTAiIHJ4PSIxNiIvPgo8cmVjdCB4PSI0OTAiIHk9IjcwNSIgd2lkdGg9IjM2IiBoZWlnaHQ9IjE4NSIgcng9IjE2Ii8+PHJlY3QgeD0iNTYwIiB5PSI3MDUiIHdpZHRoPSIzNiIgaGVpZ2h0PSIxODUiIHJ4PSIxNiIvPgo8cmVjdCB4PSI2NDAiIHk9IjcwMCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjE5MCIgcng9IjE2Ii8+PHJlY3QgeD0iNzEwIiB5PSI2OTAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIyMDAiIHJ4PSIxNiIvPgo8Y2lyY2xlIGN4PSIzMjAiIGN5PSI1MjAiIHI9IjExNSIvPgo8cG9seWdvbiBwb2ludHM9IjIyNSw0NzAgMjM1LDMzMCAzMTAsNDI1Ii8+PHBvbHlnb24gcG9pbnRzPSI0MTUsNDcwIDQwNSwzMzAgMzMwLDQyNSIvPgo8L2c+CjxlbGxpcHNlIGN4PSIyODAiIGN5PSI1MTAiIHJ4PSIyNCIgcnk9IjMwIiBmaWxsPSIjZThkMjNhIi8+PGVsbGlwc2UgY3g9IjM2MiIgY3k9IjUxMCIgcng9IjI0IiByeT0iMzAiIGZpbGw9IiNlOGQyM2EiLz4KPGVsbGlwc2UgY3g9IjMyMCIgY3k9IjQ1NSIgcng9IjE4IiByeT0iMjIiIGZpbGw9IiNlOGQyM2EiLz4KPGVsbGlwc2UgY3g9IjI4MCIgY3k9IjUxMiIgcng9IjciIHJ5PSIyNCIgZmlsbD0iIzBlMGIxMCIvPjxlbGxpcHNlIGN4PSIzNjIiIGN5PSI1MTIiIHJ4PSI3IiByeT0iMjQiIGZpbGw9IiMwZTBiMTAiLz48ZWxsaXBzZSBjeD0iMzIwIiBjeT0iNDU3IiByeD0iNiIgcnk9IjE3IiBmaWxsPSIjMGUwYjEwIi8+CjxwYXRoIGQ9Ik0zMTAgNTY1IEwgMzMwIDU2NSBMIDMyMCA1NzggWiIgZmlsbD0iI2Q3N2E4ZiIvPgo8L3N2Zz4K", caption: "A completely normal black cat, exactly as requested. Nothing unusual here." },
+    { prompt: "Draw a friendly ghost waving hello", src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPgo8ZGVmcz48cmFkaWFsR3JhZGllbnQgaWQ9ImJnIiBjeD0iLjUiIGN5PSIuNCIgcj0iLjgiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzJmM2Y3YSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzBiMTAzMCIvPjwvcmFkaWFsR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTAyNCIgaGVpZ2h0PSIxMDI0IiBmaWxsPSJ1cmwoI2JnKSIvPgo8ZyBmaWxsPSIjZjNmMWZmIiBvcGFjaXR5PSIuNiI+PGNpcmNsZSBjeD0iMTUwIiBjeT0iMTYwIiByPSIzIi8+PGNpcmNsZSBjeD0iODgwIiBjeT0iMTIwIiByPSIzIi8+PGNpcmNsZSBjeD0iODIwIiBjeT0iNDIwIiByPSIyIi8+PGNpcmNsZSBjeD0iMTEwIiBjeT0iNjIwIiByPSIyIi8+PC9nPgo8cGF0aCBkPSJNMzAwIDg4MCBMIDMwMCA0NzAgQyAzMDAgMzAwLCA0MjAgMjIwLCA1MTIgMjIwIEMgNjA0IDIyMCwgNzI0IDMwMCwgNzI0IDQ3MCBMIDcyNCA4ODAgTCA2NzIgODMwIEwgNjIwIDg4MCBMIDU2OCA4MzAgTCA1MTIgODgwIEwgNDU2IDgzMCBMIDQwNCA4ODAgTCAzNTIgODMwIFoiIGZpbGw9IiNmM2YxZmYiLz4KPGVsbGlwc2UgY3g9IjQ1MCIgY3k9IjQ0MCIgcng9IjM0IiByeT0iNDgiIGZpbGw9IiMxNDFhM2EiLz48ZWxsaXBzZSBjeD0iNTc0IiBjeT0iNDQwIiByeD0iMzQiIHJ5PSI0OCIgZmlsbD0iIzE0MWEzYSIvPgo8ZWxsaXBzZSBjeD0iNTEyIiBjeT0iNTUwIiByeD0iNDAiIHJ5PSIzMCIgZmlsbD0iIzE0MWEzYSIvPgo8cGF0aCBkPSJNNzE1IDU2MCBDIDc4MCA1MjAsIDgxMCA0NzAsIDgyMCA0MjAiIHN0cm9rZT0iI2YzZjFmZiIgc3Ryb2tlLXdpZHRoPSI3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjgyNSIgY3k9IjQwMCIgcj0iNjIiIGZpbGw9IiNmM2YxZmYiLz4KPGcgc3Ryb2tlPSIjZjNmMWZmIiBzdHJva2Utd2lkdGg9IjIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiPgo8bGluZSB4MT0iNzgwIiB5MT0iMzcwIiB4Mj0iNzQwIiB5Mj0iMzAwIi8+PGxpbmUgeDE9IjgwMCIgeTE9IjM1NSIgeDI9Ijc3NSIgeTI9IjI2NSIvPjxsaW5lIHgxPSI4MjIiIHkxPSIzNTAiIHgyPSI4MTUiIHkyPSIyNTAiLz4KPGxpbmUgeDE9Ijg0NSIgeTE9IjM1MiIgeDI9Ijg1OCIgeTI9IjI1NSIvPjxsaW5lIHgxPSI4NjUiIHkxPSIzNjIiIHgyPSI5MDAiIHkyPSIyODAiLz48bGluZSB4MT0iODgwIiB5MT0iMzgwIiB4Mj0iOTM1IiB5Mj0iMzIwIi8+CjxsaW5lIHgxPSI4ODUiIHkxPSI0MDUiIHgyPSI5NTAiIHkyPSIzODAiLz4KPC9nPgo8L3N2Zz4K", caption: "Here's a friendly ghost waving hello with one perfectly normal hand! 👋" }
+  ],
+
+  // Used for images you drop in the folder without listing them above
+  imagePrompts: [
+    "Make me a spooky Halloween picture",
+    "Generate a photorealistic haunted house",
+    "Draw my costume, but scarier",
+    "Create a cute Halloween picture for my kids"
+  ],
+  imageCaptions: [
+    "Here you go! I think it turned out perfect.",
+    "Here's your image! Every detail is 100% accurate.",
+    "Done! I followed your instructions exactly.",
+    "I made this just for you. Please don't count the fingers."
+  ],
+
+  // Fallback prompts for any hallucination that has no prompt
+  starters: [
+    "Tell me something spooky",
+    "Give me a Halloween fun fact"
+  ]
+};
+
+window.HALLOWEEN_AUTO_IMAGES = [];
+</script>
+<script>
+(function () {
+  "use strict";
+  var C = window.HALLOWEEN_CONTENT || {};
+  var AUTO = window.HALLOWEEN_AUTO_IMAGES || [];
+  var KEY = "halloweenChat.settings.v1";
+  var DEFAULTS = { bot: "claude", hallucinations: true, images: true, speed: "normal", idle: 45, fullscreen: true };
+  var SPEED_MS = { slow: 110, normal: 60, fast: 25 };
+  var BOT_DEFAULTS = {
+    claude:  { name: "Claude",  model: "Haunted 4.5", avatar: "🎃", greetings: ["Good evening, mortal"], disclaimer: "Claude can make mistakes. Tonight it will.", thinking: "Thinking" },
+    chatgpt: { name: "ChatGPT", model: "GPT-Boo",     avatar: "👻", greetings: ["What can I help with?"], disclaimer: "ChatGPT can make mistakes. Check important info.", thinking: "Thinking" }
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var S = loadSettings();
+  var bag = [];
+  var timers = [];
+  var idleTimer = null;
+  var finishTyping = null;
+  var state = "start";
+
+  // ---------- settings ----------
+  function loadSettings() {
+    var s = Object.assign({}, DEFAULTS);
+    try { var raw = localStorage.getItem(KEY); if (raw) Object.assign(s, JSON.parse(raw)); } catch (e) {}
+    try {
+      var q = new URLSearchParams(location.search);
+      if (q.get("bot") === "claude" || q.get("bot") === "chatgpt") s.bot = q.get("bot");
+      var m = q.get("mode");
+      if (m === "hallucinations") { s.hallucinations = true; s.images = false; }
+      if (m === "images") { s.hallucinations = false; s.images = true; }
+      if (m === "both") { s.hallucinations = true; s.images = true; }
+    } catch (e) {}
+    return s;
+  }
+  function saveSettings() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function bot() { return Object.assign({}, BOT_DEFAULTS[S.bot], (C.bots || {})[S.bot] || {}); }
+
+  // ---------- content pool ----------
+  function pick(arr) { return arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : ""; }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function allItems() {
+    var out = [];
+    (C.hallucinations || []).forEach(function (h, i) { out.push(Object.assign({ type: "text", id: "h" + i }, h)); });
+    (C.images || []).forEach(function (im, i) { out.push(Object.assign({ type: "image", id: "i" + i }, im)); });
+    AUTO.forEach(function (im, i) { out.push(Object.assign({ type: "image", id: "a" + i, auto: true }, im)); });
+    return out;
+  }
+  function forBot(it) { return !it.bot || it.bot === S.bot || (Array.isArray(it.bot) && it.bot.indexOf(S.bot) >= 0); }
+  function eligible() {
+    return allItems().filter(function (it) { return (it.type === "text" ? S.hallucinations : S.images) && forBot(it); });
+  }
+  function refill() {
+    var el = eligible(); if (!el.length) return false;
+    var inBag = {}; bag.forEach(function (b) { inBag[b.id] = 1; });
+    var fresh = shuffle(el.filter(function (x) { return !inBag[x.id]; }));
+    if (!fresh.length) fresh = shuffle(el);
+    fresh.forEach(function (it) {
+      if (!it.prompt) it.prompt = it.type === "image" ? pick(C.imagePrompts) || "Make me a spooky Halloween picture" : pick(C.starters) || "Tell me something spooky";
+      if (it.type === "image" && !it.caption) it.caption = pick(C.imageCaptions) || "Here you go! I think it turned out perfect.";
+    });
+    bag = bag.concat(fresh); return true;
+  }
+  function upcoming(n) {
+    var guard = 0;
+    while (bag.length < n && guard++ < 5) { if (!refill()) break; }
+    var seen = {}, out = [];
+    bag.forEach(function (b) { if (out.length < n && !seen[b.id]) { seen[b.id] = 1; out.push(b); } });
+    return out;
+  }
+  function take(it) { var i = bag.indexOf(it); if (i >= 0) bag.splice(i, 1); }
+
+  // ---------- helpers ----------
+  function later(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; clearTimeout(idleTimer); finishTyping = null; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function scrollDown() { var t = $("thread"); t.scrollTop = t.scrollHeight; }
+  function armIdle() {
+    clearTimeout(idleTimer);
+    if (state === "chat" && Number(S.idle) > 0 && !$("settings").classList.contains("open")) idleTimer = setTimeout(showStart, Number(S.idle) * 1000);
+  }
+
+  function applyTheme() {
+    var b = bot();
+    document.body.setAttribute("data-bot", S.bot);
+    $("brandName").textContent = b.name;
+    $("brandModel").textContent = b.model || "";
+    $("disclaimer").textContent = b.disclaimer || "";
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", S.bot === "chatgpt" ? "#212121" : "#F4F1EA");
+    document.title = b.name;
+  }
+
+  // ---------- start screen ----------
+  function showStart() {
+    clearTimers();
+    state = "start";
+    $("chat").classList.remove("active");
+    $("start").classList.add("active");
+    $("againBtn").classList.remove("show");
+    var b = bot();
+    $("greetIcon").textContent = b.avatar || "";
+    $("greetText").textContent = pick(b.greetings) || "";
+    var items = upcoming(3);
+    var chips = $("chips"); chips.innerHTML = "";
+    var typed = $("typedText"); typed.textContent = "";
+    if (!items.length) {
+      typed.textContent = "No responses enabled. Owner: open settings.";
+      $("mainPrompt").onclick = null; $("hint").style.display = "none";
+      return;
+    }
+    $("hint").style.display = "";
+    var main = items[0];
+    $("mainPrompt").onclick = function (e) { e.stopPropagation(); startChat(main); };
+    items.slice(1).forEach(function (it) {
+      var c = el("button", "chip", it.prompt);
+      c.onclick = function (e) { e.stopPropagation(); startChat(it); };
+      chips.appendChild(c);
+    });
+    // type the main prompt into the "input box" to draw people in
+    var txt = main.prompt, i = 0;
+    (function step() { if (state !== "start") return; typed.textContent = txt.slice(0, ++i); if (i < txt.length) later(step, 45); })();
+  }
+
+  // ---------- chat ----------
+  function startChat(item) {
+    goFullscreen(); keepAwake();
+    clearTimers();
+    take(item);
+    state = "chat";
+    $("start").classList.remove("active");
+    $("chat").classList.add("active");
+    $("againBtn").classList.remove("show");
+    var thread = $("thread"); thread.innerHTML = "";
+    thread.appendChild(el("div", "user", item.prompt));
+    var b = bot();
+    var block = el("div", "bot"); thread.appendChild(block);
+    var status = el("div", "status thinking");
+    status.appendChild(el("span", "avatar", b.avatar || ""));
+    var dots = el("span", "dots"); dots.innerHTML = "<span></span><span></span><span></span>";
+    status.appendChild(dots);
+    block.appendChild(status);
+    later(function () { status.remove(); item.type === "image" ? renderImage(block, item) : renderText(block, item); }, 900 + Math.random() * 1100);
+  }
+
+  function typeInto(node, text, done) {
+    var parts = String(text).split(/(\s+)/), i = 0, ms = SPEED_MS[S.speed] || 60;
+    node.textContent = "";
+    var caret = el("span", "caret"); node.appendChild(caret);
+    var finished = false;
+    function finish() { if (finished) return; finished = true; finishTyping = null; node.textContent = text; scrollDown(); done && done(); }
+    finishTyping = finish;
+    (function step() {
+      if (finished) return;
+      if (i >= parts.length) return finish();
+      caret.insertAdjacentText("beforebegin", parts[i++]);
+      if (i % 6 === 0) scrollDown();
+      later(step, /\s/.test(parts[i - 1]) ? 0 : ms * (0.6 + Math.random() * 0.8));
+    })();
+  }
+
+  function renderText(block, item) {
+    var p = el("p", "answer"); block.appendChild(p);
+    typeInto(p, item.answer || "", function () {
+      if (item.source) {
+        var c = el("div", "cite"); c.textContent = "📎 " + item.source; block.appendChild(c);
+      }
+      block.appendChild(actionRow());
+      done();
+    });
+  }
+
+  function renderImage(block, item) {
+    var status = el("div", "status");
+    status.appendChild(el("span", "avatar", bot().avatar || ""));
+    status.appendChild(el("span", "shimmer-text", S.bot === "chatgpt" ? "Creating image" : "Painting your masterpiece"));
+    block.appendChild(status);
+    var wrap = el("div", "imgwrap loading"); block.appendChild(wrap);
+    var img = new Image(); img.alt = item.caption || ""; img.decoding = "async";
+    wrap.appendChild(img);
+    scrollDown();
+    var ready = false, waited = false;
+    function reveal() {
+      if (!ready || !waited) return;
+      wrap.classList.remove("loading"); status.remove();
+      img.classList.add("shown");
+      later(function () {
+        var cap = el("p", "caption answer"); block.appendChild(cap);
+        typeInto(cap, item.caption || "", function () { block.appendChild(actionRow()); done(); });
+      }, 900);
+    }
+    img.onload = function () { ready = true; reveal(); };
+    img.onerror = function () { ready = true; reveal(); };
+    img.src = item.src;
+    later(function () { waited = true; reveal(); }, 2200 + Math.random() * 1500);
+  }
+
+  function actionRow() {
+    var r = el("div", "actions");
+    r.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.4 22H7V10l4-8a3 3 0 0 1 4 3.9Z"/></svg>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.1 10 14H4.2a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 5.6 2H17v12l-4 8a3 3 0 0 1-4-3.9Z"/></svg>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
+    return r;
+  }
+
+  function done() { $("againBtn").classList.add("show"); later(scrollDown, 50); armIdle(); }
+
+  // ---------- fullscreen / wake ----------
+  function goFullscreen(force) {
+    if (!S.fullscreen && !force) return;
+    var d = document, e = d.documentElement;
+    if (d.fullscreenElement || d.webkitFullscreenElement) return;
+    var fn = e.requestFullscreen || e.webkitRequestFullscreen;
+    if (!fn) return;
+    try { var p = fn.call(e); if (p && p.catch) p.catch(function () {}); } catch (err) {}
+  }
+  var wakeLock = null;
+  function keepAwake() {
+    try { if (!wakeLock && navigator.wakeLock) navigator.wakeLock.request("screen").then(function (l) { wakeLock = l; l.addEventListener("release", function () { wakeLock = null; }); }).catch(function () {}); } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") wakeLock = null; });
+
+  // ---------- owner settings ----------
+  function counts() {
+    var t = 0, im = 0;
+    allItems().forEach(function (it) { if (!forBot(it)) return; it.type === "text" ? t++ : im++; });
+    return { t: t, im: im };
+  }
+  function renderSettings() {
+    document.querySelectorAll("#settings .seg[data-key]").forEach(function (seg) {
+      var k = seg.getAttribute("data-key");
+      seg.querySelectorAll("button").forEach(function (btn) { btn.classList.toggle("on", String(S[k]) === btn.getAttribute("data-val")); });
+    });
+    document.querySelectorAll("#settings [data-flag]").forEach(function (btn) { btn.classList.toggle("on", !!S[btn.getAttribute("data-flag")]); });
+    var c = counts();
+    $("countText").textContent = c.t + " loaded";
+    $("countImg").textContent = c.im + " loaded";
+    $("contentSummary").textContent = "Showing " + bot().name + " · " + c.t + " hallucinations and " + c.im + " images available for this bot.";
+  }
+  function openSettings() {
+    clearTimeout(idleTimer);
+    $("warn").textContent = "";
+    renderSettings();
+    $("settings").classList.add("open");
+  }
+  function closeSettings() {
+    $("settings").classList.remove("open");
+    saveSettings(); applyTheme(); bag = []; showStart();
+  }
+  document.querySelectorAll("#settings .seg[data-key] button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var k = btn.parentNode.getAttribute("data-key"), v = btn.getAttribute("data-val");
+      S[k] = (k === "idle") ? Number(v) : (v === "true" ? true : v === "false" ? false : v);
+      if (k === "bot") applyTheme();
+      renderSettings();
+    });
+  });
+  document.querySelectorAll("#settings [data-flag]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var f = btn.getAttribute("data-flag"), other = f === "images" ? "hallucinations" : "images";
+      if (S[f] && !S[other]) { $("warn").textContent = "At least one type has to stay on."; return; }
+      $("warn").textContent = "";
+      S[f] = !S[f]; renderSettings();
+    });
+  });
+  $("closeSettings").addEventListener("click", closeSettings);
+  $("fsNow").addEventListener("click", function () { goFullscreen(true); });
+
+  // Hidden hotspot: long-press 2s, or 5 taps within 3s
+  (function () {
+    var hs = $("secret"), holdT = null, taps = [];
+    hs.addEventListener("pointerdown", function (e) {
+      e.preventDefault(); e.stopPropagation();
+      clearTimeout(holdT); holdT = setTimeout(openSettings, 2000);
+      var now = Date.now(); taps = taps.filter(function (t) { return now - t < 3000; }); taps.push(now);
+      if (taps.length >= 5) { taps = []; clearTimeout(holdT); openSettings(); }
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { hs.addEventListener(ev, function () { clearTimeout(holdT); }); });
+    hs.addEventListener("click", function (e) { e.stopPropagation(); });
+  })();
+
+  // ---------- global interactions ----------
+  $("restartBtn").addEventListener("click", function (e) { e.stopPropagation(); showStart(); });
+  $("againBtn").addEventListener("click", function (e) { e.stopPropagation(); showStart(); });
+  $("start").addEventListener("click", function () { var items = upcoming(1); if (items.length) startChat(items[0]); });
+  $("thread").addEventListener("click", function () { if (finishTyping) finishTyping(); });
+  ["pointerdown", "touchmove"].forEach(function (ev) { document.addEventListener(ev, function () { if (state === "chat" && $("againBtn").classList.contains("show")) armIdle(); }, { passive: true }); });
+  document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+  document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  document.addEventListener("dblclick", function (e) { e.preventDefault(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "s" && e.ctrlKey) { e.preventDefault(); openSettings(); } if (e.key === "Escape" && $("settings").classList.contains("open")) closeSettings(); });
+
+  applyTheme();
+  showStart();
+
+  // Offline support: when served from a web host, save the app on the device
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+})();
+</script>
+</body>
+</html>
