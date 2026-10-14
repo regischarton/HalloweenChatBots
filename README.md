@@ -33,8 +33,10 @@ canned "AI hallucination" or "AI slop image". No typing. After the first visit i
    home-screen app, so do this from the icon.
 4. Test: turn on Airplane Mode, close the app (swipe it away), reopen it. It should load normally.
 
-**After you change content:** push, then open the home-screen app twice while on Wi-Fi. The first launch downloads
-the new version in the background; the second launch shows it.
+**After you change content:** push, wait a minute or two for GitHub Pages, then bring the home-screen app to the
+front while on Wi-Fi. It checks for updates every time it comes back on screen and reloads itself onto the new
+version (only from the start screen, never mid-answer). The build time is shown at the top of the hidden settings,
+so you can confirm which version each iPad is running.
 
 ## Using it
 - Tap anywhere on the start screen (or the prompt / a suggestion chip) to "ask".

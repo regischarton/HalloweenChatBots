@@ -9,6 +9,7 @@ Bakes the app (HTML + content + every image) into the docs/ folder, ready for Gi
 Usage (from this folder):   python build.py      (or  py build.py  on Windows)
 """
 import base64, hashlib, json, re, shutil, sys
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -41,7 +42,12 @@ const CACHE = "halloween-chat-__VERSION__";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./apple-touch-icon.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: "reload" skips the browser's HTTP cache so we never save a stale copy as the new version
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: "reload" }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (e) => {
@@ -96,8 +102,10 @@ def main() -> int:
             if p.is_file() and p.suffix.lower() in MIME and p.resolve() not in used:
                 auto.append({"src": data_uri(p), "name": p.stem})
 
+    build = datetime.now().strftime("%Y-%m-%d %H:%M")
     script = ("<script>\n" + content.replace("</script", "<\\/script") +
-              "\nwindow.HALLOWEEN_AUTO_IMAGES = " + json.dumps(auto) + ";\n</script>")
+              "\nwindow.HALLOWEEN_AUTO_IMAGES = " + json.dumps(auto) + ";" +
+              "\nwindow.APP_BUILD = " + json.dumps(build) + ";\n</script>")
     page = html.replace(MARKER, script)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -110,7 +118,7 @@ def main() -> int:
     (OUT_DIR / ".nojekyll").write_text("", encoding="utf-8")
 
     size = (OUT_DIR / "index.html").stat().st_size // 1024
-    print(f"Built docs/  (index.html {size} KB, version {version})")
+    print(f"Built docs/  (index.html {size} KB, version {build} / {version})")
     print(f"  {len(used)} listed images, {len(auto)} extra images picked up from app/images/")
     for m in missing:
         print(f"  ! WARNING: content.js refers to '{m}' but that file isn't in app/")

@@ -362,6 +362,7 @@ window.HALLOWEEN_CONTENT = {
 };
 
 window.HALLOWEEN_AUTO_IMAGES = [];
+window.APP_BUILD = "2026-10-13 22:16";
 </script>
 <script>
 (function () {
@@ -602,7 +603,8 @@ window.HALLOWEEN_AUTO_IMAGES = [];
     var c = counts();
     $("countText").textContent = c.t + " loaded";
     $("countImg").textContent = c.im + " loaded";
-    $("contentSummary").textContent = "Showing " + bot().name + " · " + c.t + " hallucinations and " + c.im + " images available for this bot.";
+    $("contentSummary").textContent = "Showing " + bot().name + " · " + c.t + " hallucinations and " + c.im + " images available for this bot." +
+      " Version: " + (window.APP_BUILD || "dev");
   }
   function openSettings() {
     clearTimeout(idleTimer);
@@ -664,8 +666,22 @@ window.HALLOWEEN_AUTO_IMAGES = [];
   showStart();
 
   // Offline support: when served from a web host, save the app on the device
+  // Updates: check whenever the app comes back to the screen; when a new version takes over,
+  // reload, but only on the start screen so a guest is never interrupted mid-answer.
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+    var hadController = !!navigator.serviceWorker.controller, pendingReload = false, reg = null;
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (r) { reg = r; r.update().catch(function () {}); }).catch(function () {});
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && reg) reg.update().catch(function () {});
+    });
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (!hadController) { hadController = true; return; }  // first install, nothing to refresh
+      if (state === "start" && !$("settings").classList.contains("open")) location.reload(); else pendingReload = true;
+    });
+    var _showStart = showStart;
+    showStart = function () { if (pendingReload) { location.reload(); return; } _showStart(); };
   }
 })();
 </script>
