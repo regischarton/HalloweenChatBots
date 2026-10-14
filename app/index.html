@@ -165,6 +165,19 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
 .panel .row-actions { display: flex; gap: 12px; margin-top: 22px; }
 .panel .row-actions button { flex: 1; border-radius: 14px; padding: 18px; font-size: 20px; font-weight: 700; border: 2px solid #1d1d1f; background: #fff; color: #1d1d1f; }
 .panel .row-actions button.primary { background: #1d1d1f; color: #fff; }
+.panel .row-actions { position: sticky; bottom: -28px; background: #fff; padding: 14px 0 28px; margin-bottom: -28px; }
+@media (max-width: 600px) {
+  #settings { padding: 12px; }
+  .panel { padding: 22px 18px 18px; border-radius: 20px; }
+  .panel h2 { font-size: 24px; } .panel .sub { font-size: 14px; margin-bottom: 12px; }
+  .setting { padding: 12px 0; } .setting > .label { font-size: 16px; margin-bottom: 8px; }
+  .seg { flex-wrap: nowrap; gap: 6px; }
+  .seg button { min-width: 0; padding: 12px 4px; font-size: 15px; border-radius: 10px; }
+  .seg button small { font-size: 12px; }
+  .panel .note { font-size: 13px; }
+  .panel .row-actions button { padding: 14px 8px; font-size: 16px; white-space: nowrap; }
+  .panel .row-actions { bottom: -18px; padding-bottom: 18px; margin-bottom: -18px; }
+}
 </style>
 </head>
 <body data-bot="claude">
@@ -209,6 +222,9 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
       </div>
       <p class="warn" id="warn"></p></div>
 
+    <div class="setting"><div class="label">Thinking time</div>
+      <div class="seg" data-key="think"><button data-val="slow">Slow</button><button data-val="normal">Normal</button><button data-val="fast">Fast</button></div></div>
+
     <div class="setting"><div class="label">Typing speed</div>
       <div class="seg" data-key="speed"><button data-val="slow">Slow</button><button data-val="normal">Normal</button><button data-val="fast">Fast</button></div></div>
 
@@ -235,8 +251,16 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
   var C = window.HALLOWEEN_CONTENT || {};
   var AUTO = window.HALLOWEEN_AUTO_IMAGES || [];
   var KEY = "halloweenChat.settings.v1";
-  var DEFAULTS = { bot: "claude", hallucinations: true, images: true, speed: "normal", idle: 45, fullscreen: true };
+  var DEFAULTS = { bot: "claude", hallucinations: true, images: true, speed: "normal", think: "normal", idle: 45, fullscreen: true };
   var SPEED_MS = { slow: 110, normal: 60, fast: 25 };
+  // Thinking time: [min, max] ms for the "thinking" dots, the image "generating" wait, and the pause before the caption
+  var THINK = {
+    slow:   { text: [1800, 3200], image: [3500, 5000], caption: 1200 },
+    normal: { text: [900, 2000],  image: [2200, 3700], caption: 900 },
+    fast:   { text: [300, 600],   image: [700, 1100],  caption: 250 }
+  };
+  function think() { return THINK[S.think] || THINK.normal; }
+  function between(r) { return r[0] + Math.random() * (r[1] - r[0]); }
   var BOT_DEFAULTS = {
     claude:  { name: "Claude",  model: "Haunted 4.5", avatar: "🎃", greetings: ["Good evening, mortal"], disclaimer: "Claude can make mistakes. Tonight it will.", thinking: "Thinking" },
     chatgpt: { name: "ChatGPT", model: "GPT-Boo",     avatar: "👻", greetings: ["What can I help with?"], disclaimer: "ChatGPT can make mistakes. Check important info.", thinking: "Thinking" }
@@ -371,7 +395,7 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
     var dots = el("span", "dots"); dots.innerHTML = "<span></span><span></span><span></span>";
     status.appendChild(dots);
     block.appendChild(status);
-    later(function () { status.remove(); item.type === "image" ? renderImage(block, item) : renderText(block, item); }, 900 + Math.random() * 1100);
+    later(function () { status.remove(); item.type === "image" ? renderImage(block, item) : renderText(block, item); }, between(think().text));
   }
 
   function typeInto(node, text, done) {
@@ -418,12 +442,12 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
       later(function () {
         var cap = el("p", "caption answer"); block.appendChild(cap);
         typeInto(cap, item.caption || "", function () { block.appendChild(actionRow()); done(); });
-      }, 900);
+      }, think().caption);
     }
     img.onload = function () { ready = true; reveal(); };
     img.onerror = function () { ready = true; reveal(); };
     img.src = item.src;
-    later(function () { waited = true; reveal(); }, 2200 + Math.random() * 1500);
+    later(function () { waited = true; reveal(); }, between(think().image));
   }
 
   function actionRow() {

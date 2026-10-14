@@ -43,7 +43,8 @@ so you can confirm which version each iPad is running.
 - Tap during typing to skip to the end of the answer.
 - **Reload button** (top right) returns to the start screen. It also returns on its own after 45 s (configurable).
 - **Hidden owner settings:** hold the reload button for 2 seconds, or tap it 5 times quickly
-  (Ctrl+S on a desktop). Pick the chatbot, hallucinations / images / both, typing speed, idle timeout.
+  (Ctrl+S on a desktop). Pick the chatbot, hallucinations / images / both, thinking time
+  (how long it "thinks" or "generates" before answering), typing speed, idle timeout.
   Settings are remembered on that iPad.
 - URL shortcuts also work: `?bot=chatgpt&mode=images` (`mode` = `hallucinations`, `images` or `both`).
 
