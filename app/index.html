@@ -43,16 +43,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- Header ---------- */
 header { flex: none; display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 110px 10px 28px; min-height: 84px; }
-.brand { font-size: clamp(22px, 3vw, 32px); font-weight: 600; letter-spacing: -.01em; display: flex; align-items: baseline; gap: .5em; }
+  padding: 16px 22px 8px 28px; min-height: 80px; gap: 12px; }
+.brand { white-space: nowrap; min-width: 0; overflow: hidden; font-size: clamp(20px, 3vw, 32px); font-weight: 600; letter-spacing: -.01em; display: flex; align-items: baseline; gap: .5em; }
 body[data-bot="claude"] .brand { font-family: var(--body-font); font-weight: 500; }
 .brand .model { font-size: .62em; font-weight: 500; color: var(--muted); font-family: var(--ui-font); }
-#restartBtn { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border); background: var(--card);
-  border-radius: 999px; padding: 12px 22px; font-size: clamp(18px, 2.3vw, 24px); font-weight: 600; }
-#restartBtn svg { width: 1.2em; height: 1.2em; }
+#restartBtn { flex: none; display: grid; place-items: center; width: clamp(44px, 6.4vw, 56px); height: clamp(44px, 6.4vw, 56px);
+  border: 1.5px solid var(--border); background: var(--card); border-radius: 50%; padding: 0; color: var(--fg); }
+#restartBtn svg { width: 50%; height: 50%; }
 #restartBtn:active { transform: scale(.96); }
-/* Invisible owner hotspot in the very top-right corner (hold 2s or tap 5x) */
-#secret { position: fixed; top: 0; right: 0; width: 96px; height: 96px; z-index: 50; }
 
 /* ---------- Screens ---------- */
 .screen { flex: 1; min-height: 0; display: none; flex-direction: column; }
@@ -60,17 +58,18 @@ body[data-bot="claude"] .brand { font-family: var(--body-font); font-weight: 500
 
 /* Start screen */
 #start { justify-content: center; align-items: center; padding: 0 6vw 4vh; text-align: center; gap: 4.5vh; }
-.greet { font-family: var(--greet-font); font-size: clamp(42px, 7.2vw, 84px); line-height: 1.08; font-weight: 400; margin: 0; letter-spacing: -.02em; }
-body[data-bot="chatgpt"] .greet { font-weight: 500; font-size: clamp(38px, 6.4vw, 72px); }
+.greet, .inputbox, .chips, .hint { flex: none; }
+.greet { font-family: var(--greet-font); font-size: clamp(30px, 7.2vw, 84px); line-height: 1.08; font-weight: 400; margin: 0; letter-spacing: -.02em; }
+body[data-bot="chatgpt"] .greet { font-weight: 500; font-size: clamp(28px, 6.4vw, 72px); }
 .greet .icon { display: block; font-size: 1.1em; margin-bottom: .2em; }
 .inputbox { width: 100%; max-width: 980px; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
   padding: 30px 30px 24px 36px; text-align: left; box-shadow: 0 10px 40px rgba(0,0,0,.08);
   display: flex; align-items: flex-end; gap: 20px; }
-.inputbox .typed { flex: 1; font-size: clamp(28px, 4.4vw, 48px); line-height: 1.25; min-height: 2.5em; font-family: var(--body-font); }
+.inputbox .typed { flex: 1; font-size: clamp(21px, 4.4vw, 48px); line-height: 1.25; min-height: 2.5em; font-family: var(--body-font); }
 body[data-bot="chatgpt"] .inputbox .typed { font-family: var(--ui-font); }
 .caret { display: inline-block; width: 3px; height: 1.05em; background: var(--fg); vertical-align: -0.15em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
-.send { flex: none; width: clamp(64px, 8vw, 84px); height: clamp(64px, 8vw, 84px); border-radius: 50%; border: 0;
+.send { flex: none; width: clamp(50px, 8vw, 84px); height: clamp(50px, 8vw, 84px); border-radius: 50%; border: 0;
   background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; animation: pulse 1.6s ease-in-out infinite; }
 body[data-bot="claude"] .send { border-radius: 18px; }
 .send svg { width: 50%; height: 50%; }
@@ -78,20 +77,20 @@ body[data-bot="claude"] .send { border-radius: 18px; }
   50% { transform: scale(1.07); box-shadow: 0 0 0 18px transparent; } }
 .chips { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-width: 980px; }
 .chip { border: 1.5px solid var(--border); background: transparent; border-radius: 999px; padding: 16px 26px;
-  font-size: clamp(20px, 2.8vw, 30px); color: var(--fg); }
+  font-size: clamp(16px, 2.8vw, 30px); color: var(--fg); }
 .chip:active, .inputbox:active { transform: scale(.98); }
-.hint { font-size: clamp(22px, 3vw, 32px); color: var(--muted); animation: breathe 2.4s ease-in-out infinite; }
+.hint { font-size: clamp(17px, 3vw, 32px); color: var(--muted); animation: breathe 2.4s ease-in-out infinite; }
 @keyframes breathe { 50% { opacity: .35; } }
 
 /* Chat screen */
 #thread { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2vh 6vw 3vh;
   display: flex; flex-direction: column; gap: 3.5vh; touch-action: pan-y; scroll-behavior: smooth; }
 .user { align-self: flex-end; max-width: 82%; background: var(--user-bg); color: var(--user-fg); border-radius: 30px;
-  padding: 20px 30px; font-size: clamp(24px, 3.8vw, 40px); line-height: 1.3; font-family: var(--body-font); animation: rise .35s ease-out; }
+  padding: 20px 30px; font-size: clamp(19px, 3.8vw, 40px); line-height: 1.3; font-family: var(--body-font); animation: rise .35s ease-out; }
 body[data-bot="chatgpt"] .user { font-family: var(--ui-font); }
 @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
 .bot { display: flex; flex-direction: column; gap: 22px; }
-.status { display: flex; align-items: center; gap: 14px; font-size: clamp(22px, 3vw, 30px); color: var(--muted); }
+.status { display: flex; align-items: center; gap: 14px; font-size: clamp(18px, 3vw, 30px); color: var(--muted); }
 .avatar { font-size: 1.5em; line-height: 1; }
 .thinking .dots span { display: inline-block; width: .42em; height: .42em; border-radius: 50%; background: var(--muted); margin: 0 3px; animation: bounce 1.2s infinite; }
 .thinking .dots span:nth-child(2) { animation-delay: .15s; } .thinking .dots span:nth-child(3) { animation-delay: .3s; }
@@ -99,7 +98,7 @@ body[data-bot="chatgpt"] .user { font-family: var(--ui-font); }
 .shimmer-text { background: linear-gradient(90deg, var(--muted) 30%, var(--fg) 50%, var(--muted) 70%); background-size: 200% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 1.6s linear infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }
-.answer { font-family: var(--body-font); font-size: clamp(28px, 4.6vw, 50px); line-height: 1.35; margin: 0; white-space: pre-wrap; }
+.answer { font-family: var(--body-font); font-size: clamp(22px, 4.6vw, 50px); line-height: 1.35; margin: 0; white-space: pre-wrap; }
 body[data-bot="chatgpt"] .answer { font-family: var(--ui-font); line-height: 1.4; }
 .cite { align-self: flex-start; display: inline-flex; gap: 10px; align-items: center; font-size: clamp(16px, 2.2vw, 22px);
   background: var(--user-bg); border-radius: 999px; padding: 8px 18px; color: var(--muted); animation: rise .35s ease-out; }
@@ -112,14 +111,39 @@ body[data-bot="chatgpt"] .answer { font-family: var(--ui-font); line-height: 1.4
 .imgwrap img { width: 100%; height: 100%; object-fit: contain; display: block; filter: blur(40px) saturate(1.4); opacity: 0; transform: scale(1.06);
   transition: filter 1.8s ease-out, opacity .6s ease-out, transform 1.8s ease-out; }
 .imgwrap img.shown { filter: none; opacity: 1; transform: none; }
-.caption { font-size: clamp(24px, 3.8vw, 40px); }
+.caption { font-size: clamp(20px, 3.8vw, 40px); }
 #againWrap { flex: none; display: flex; justify-content: center; padding: 0 6vw 2vh; min-height: 96px; }
 #againBtn { visibility: hidden; border: 0; background: var(--accent); color: var(--accent-fg); border-radius: 999px;
-  padding: 22px 44px; font-size: clamp(24px, 3.4vw, 36px); font-weight: 650; box-shadow: 0 8px 30px rgba(0,0,0,.18); }
+  padding: 22px 44px; font-size: clamp(19px, 3.4vw, 36px); font-weight: 650; white-space: nowrap; box-shadow: 0 8px 30px rgba(0,0,0,.18); }
 #againBtn.show { visibility: visible; animation: rise .4s ease-out; }
 #againBtn:active { transform: scale(.96); }
 
 @media (orientation: landscape) { .imgwrap { height: 44vh; height: 44dvh; } #start { gap: 3vh; } }
+@media (max-width: 600px) {
+  header { padding: 10px 14px 4px 18px; min-height: 64px; }
+  .brand .model { font-size: .7em; }
+  #start { padding: 0 18px 2vh; gap: 3vh; }
+  .greet .icon { font-size: .8em; margin-bottom: .1em; }
+  .inputbox { padding: 18px 16px 16px 22px; gap: 12px; border-radius: 24px; }
+  body[data-bot="claude"] .send { border-radius: 14px; }
+  .chips { gap: 10px; }
+  .chip { padding: 12px 18px; }
+  .chip:nth-child(n+2) { display: none; }
+  #thread { padding: 1vh 18px 2vh; gap: 2.5vh; }
+  .user { padding: 14px 20px; border-radius: 22px; }
+  .bot { gap: 14px; }
+  .actions { gap: 20px; }
+  .actions svg { width: 22px; height: 22px; }
+  .imgwrap { border-radius: 18px; }
+  #againWrap { min-height: 72px; padding: 0 18px 1.5vh; }
+  #againBtn { padding: 16px 30px; }
+  footer.disclaimer { padding: 2px 16px 10px; }
+}
+@media (max-height: 560px) {
+  .greet .icon { display: none; }
+  #start { gap: 2.5vh; }
+  .chips { display: none; }
+}
 footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-size: clamp(14px, 1.9vw, 19px); padding: 4px 20px 16px; }
 
 /* ---------- Owner settings ---------- */
@@ -147,12 +171,10 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
 <div id="app">
   <header>
     <div class="brand"><span id="brandName">Claude</span><span class="model" id="brandModel"></span></div>
-    <button id="restartBtn" aria-label="New chat">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      <span>New chat</span>
+    <button id="restartBtn" aria-label="Start over">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
     </button>
   </header>
-  <div id="secret" aria-hidden="true"></div>
 
   <main id="start" class="screen active">
     <h1 class="greet"><span class="icon" id="greetIcon"></span><span id="greetText"></span></h1>
@@ -196,7 +218,7 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
     <div class="setting"><div class="label">Full screen on first tap</div>
       <div class="seg" data-key="fullscreen"><button data-val="true">On</button><button data-val="false">Off</button></div></div>
 
-    <p class="note">Hidden button: hold the top-right corner for 2 seconds (or tap it 5 times quickly).<br>
+    <p class="note">Hidden access: hold the reload button for 2 seconds (or tap it 5 times quickly).<br>
       Tip: turn on iPad Guided Access (Settings › Accessibility) and set Auto-Lock to Never so guests can't leave the app and the screen stays on.</p>
 
     <div class="row-actions">
@@ -477,21 +499,24 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
   $("closeSettings").addEventListener("click", closeSettings);
   $("fsNow").addEventListener("click", function () { goFullscreen(true); });
 
-  // Hidden hotspot: long-press 2s, or 5 taps within 3s
+  // Reload button: tap = start over. Hidden owner access: hold it 2s, or tap it 5 times within 3s.
   (function () {
-    var hs = $("secret"), holdT = null, taps = [];
-    hs.addEventListener("pointerdown", function (e) {
-      e.preventDefault(); e.stopPropagation();
-      clearTimeout(holdT); holdT = setTimeout(openSettings, 2000);
-      var now = Date.now(); taps = taps.filter(function (t) { return now - t < 3000; }); taps.push(now);
-      if (taps.length >= 5) { taps = []; clearTimeout(holdT); openSettings(); }
+    var btn = $("restartBtn"), holdT = null, taps = [], held = false;
+    btn.addEventListener("pointerdown", function () {
+      held = false; clearTimeout(holdT);
+      holdT = setTimeout(function () { held = true; openSettings(); }, 2000);
     });
-    ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { hs.addEventListener(ev, function () { clearTimeout(holdT); }); });
-    hs.addEventListener("click", function (e) { e.stopPropagation(); });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { btn.addEventListener(ev, function () { clearTimeout(holdT); }); });
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (held) { held = false; return; }
+      var now = Date.now(); taps = taps.filter(function (t) { return now - t < 3000; }); taps.push(now);
+      if (taps.length >= 5) { taps = []; openSettings(); return; }
+      showStart();
+    });
   })();
 
   // ---------- global interactions ----------
-  $("restartBtn").addEventListener("click", function (e) { e.stopPropagation(); showStart(); });
   $("againBtn").addEventListener("click", function (e) { e.stopPropagation(); showStart(); });
   $("start").addEventListener("click", function () { var items = upcoming(1); if (items.length) startChat(items[0]); });
   $("thread").addEventListener("click", function () { if (finishTyping) finishTyping(); });

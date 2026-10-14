@@ -35,7 +35,7 @@ window.HALLOWEEN_CONTENT = {
       model: "GPT-Boo",
       avatar: "👻",
       greetings: ["What can I help with?", "Where should we begin tonight?", "Ready when you are… muahaha"],
-      disclaimer: "ChatGPT can make mistakes. Check important info."
+      disclaimer: "ChatGPT never makes mistakes. Humans do."
     }
   },
 

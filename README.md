@@ -39,8 +39,8 @@ the new version in the background; the second launch shows it.
 ## Using it
 - Tap anywhere on the start screen (or the prompt / a suggestion chip) to "ask".
 - Tap during typing to skip to the end of the answer.
-- **New chat** (top right) returns to the start screen. It also returns on its own after 45 s (configurable).
-- **Hidden owner settings:** hold the very top-right corner for 2 seconds, or tap it 5 times quickly
+- **Reload button** (top right) returns to the start screen. It also returns on its own after 45 s (configurable).
+- **Hidden owner settings:** hold the reload button for 2 seconds, or tap it 5 times quickly
   (Ctrl+S on a desktop). Pick the chatbot, hallucinations / images / both, typing speed, idle timeout.
   Settings are remembered on that iPad.
 - URL shortcuts also work: `?bot=chatgpt&mode=images` (`mode` = `hallucinations`, `images` or `both`).
