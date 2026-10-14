@@ -104,9 +104,16 @@ window.HALLOWEEN_CONTENT = {
   ],
 
   images: [
-    { prompt: "Draw a classic jack-o'-lantern", src: "images/sample-pumpkin.svg", caption: "Here's a classic jack-o'-lantern with the traditional number of eyes. 🎃" },
-    { prompt: "Make a photo of a normal black cat", src: "images/sample-cat.svg", caption: "A completely normal black cat, exactly as requested. Nothing unusual here." },
-    { prompt: "Draw a friendly ghost waving hello", src: "images/sample-ghost.svg", caption: "Here's a friendly ghost waving hello with one perfectly normal hand! 👋" }
+    //{ prompt: "Draw a classic jack-o'-lantern", src: "images/sample-pumpkin.svg", caption: "Here's a classic jack-o'-lantern with the traditional number of eyes. 🎃" },
+    //{ prompt: "Make a photo of a normal black cat", src: "images/sample-cat.svg", caption: "A completely normal black cat, exactly as requested. Nothing unusual here." },
+    //{ prompt: "Draw a friendly ghost waving hello", src: "images/sample-ghost.svg", caption: "Here's a friendly ghost waving hello with one perfectly normal hand! 👋" },
+    { prompt: "Show me salmon in a river", src: "images/salmon_in_river.jpg", caption: "A beautiful salmon swimming in a clear mountain river. 🐟" },
+    { prompt: "Show me a weiner dog race", src: "images/weiner_dog_race.jpg", caption: "A fun weiner dog race in progress. 🐕" },
+    { prompt: "Show me the cocky narrator", src: "images/cocky_narrator.jpg", caption: "The infamous cocky narrator, ready to tell you a spooky story. 👀" },
+    { prompt: "Show me a fisherman", src: "images/fisherman2.jpg", caption: "A hardworking fisherman by the river. 🎣" },
+    { prompt: "Show me grilled salmon", src: "images/grilled_salmon.png", caption: "Deliciously grilled salmon, perfect for a Halloween dinner. 🐟" },
+    { prompt: "Show me a fisherman", src: "images/fisherman1.jpg", caption: "Another hardworking fisherman by the river. 🎣" }
+
   ],
 
   // Used for images you drop in the folder without listing them above
