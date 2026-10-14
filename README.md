@@ -18,8 +18,11 @@ canned "AI hallucination" or "AI slop image". No typing. After the first visit i
 1. Add hallucinations to `app/content.js` (`prompt` + `answer`, optional fake `source`, optional `bot: "claude"`/`"chatgpt"`).
 2. Drop images into `app/images/`. Either list them in `content.js` with their own prompt and caption, or just
    leave them unlisted: the build picks them up and gives them a random prompt/caption from `imagePrompts` / `imageCaptions`.
-3. Run `python build.py` (Windows: `py build.py`). Resize big photos to ~1600px first; the build warns about anything over 3 MB.
-4. Commit and push. GitHub Pages updates in a minute or two.
+3. To hide an item for later, comment out its line with `//` (or wrap several lines in `/* ... */`).
+   Commented-out images are left out of the build entirely and are *not* picked up as extras.
+   Moving an image into a subfolder of `app/images/` (e.g. `app/images/later/`) also hides it.
+4. Run `python build.py` (Windows: `py build.py`). Resize big photos to ~1600px first; the build warns about anything over 3 MB.
+5. Commit and push. GitHub Pages updates in a minute or two.
 
 ## Publishing on GitHub Pages (one time)
 1. Create a repo on GitHub (it must be **public** for free Pages) and push this folder to it.

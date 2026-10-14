@@ -76,12 +76,39 @@ def data_uri(p: Path) -> str:
     return f"data:{MIME[p.suffix.lower()]};base64,{base64.b64encode(p.read_bytes()).decode('ascii')}"
 
 
+def strip_comments(js: str):
+    """Remove // and /* */ comments (but not text inside strings).
+    Returns (code_without_comments, text_of_all_comments)."""
+    out, comments, i, n = [], [], 0, len(js)
+    while i < n:
+        c = js[i]
+        if c in "\"'`":                      # string: copy through, honouring escapes
+            j = i + 1
+            while j < n and js[j] != c:
+                j += 2 if js[j] == "\\" else 1
+            out.append(js[i:j + 1]); i = j + 1
+        elif js.startswith("//", i):          # line comment
+            j = js.find("\n", i); j = n if j < 0 else j
+            comments.append(js[i:j]); i = j
+        elif js.startswith("/*", i):          # block comment (keep its line breaks)
+            j = js.find("*/", i + 2); j = n if j < 0 else j + 2
+            comments.append(js[i:j]); out.append("\n" * js.count("\n", i, j)); i = j
+        else:
+            out.append(c); i += 1
+    return "".join(out), "\n".join(comments)
+
+
 def main() -> int:
     html = (APP / "index.html").read_text(encoding="utf-8")
     content = (APP / "content.js").read_text(encoding="utf-8")
     if MARKER not in html:
         print("ERROR: could not find the content.js script tag in app/index.html")
         return 1
+
+    # Commented-out lines are ignored. Images mentioned only in comments are "parked":
+    # not embedded, and not picked up as extras either.
+    content, commented = strip_comments(content)
+    parked = {(APP / rel).resolve() for rel in re.findall(r'images/[^"\'`\s,}]+', commented)}
 
     used, missing = set(), []
 
@@ -96,11 +123,12 @@ def main() -> int:
 
     content = re.sub(r'(["\'`])(images/[^"\'`]+)\1', inline, content)
 
+    parked = {p for p in parked if p.is_file()} - used   # listed for real somewhere else wins
     auto = []
     if IMAGES.is_dir():
-        for p in sorted(IMAGES.iterdir()):
-            if p.is_file() and p.suffix.lower() in MIME and p.resolve() not in used:
-                auto.append({"src": data_uri(p), "name": p.stem})
+        for p in sorted(IMAGES.iterdir()):   # subfolders of app/images/ are ignored
+            if p.is_file() and p.suffix.lower() in MIME and p.resolve() not in used and p.resolve() not in parked:
+                auto.append({"src": data_uri(p), "name": p.name})
 
     build = datetime.now().strftime("%Y-%m-%d %H:%M")
     script = ("<script>\n" + content.replace("</script", "<\\/script") +
@@ -119,7 +147,11 @@ def main() -> int:
 
     size = (OUT_DIR / "index.html").stat().st_size // 1024
     print(f"Built docs/  (index.html {size} KB, version {build} / {version})")
-    print(f"  {len(used)} listed images, {len(auto)} extra images picked up from app/images/")
+    print(f"  {len(used)} listed images")
+    if parked:
+        print(f"  {len(parked)} commented-out (skipped): " + ", ".join(sorted(p.name for p in parked)))
+    if auto:
+        print(f"  {len(auto)} unlisted images picked up with random prompts: " + ", ".join(a["name"] for a in auto))
     for m in missing:
         print(f"  ! WARNING: content.js refers to '{m}' but that file isn't in app/")
     return 0
