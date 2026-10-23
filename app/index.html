@@ -118,7 +118,31 @@ body[data-bot="chatgpt"] .answer { font-family: var(--ui-font); line-height: 1.4
 #againBtn.show { visibility: visible; animation: rise .4s ease-out; }
 #againBtn:active { transform: scale(.96); }
 
-@media (orientation: landscape) { .imgwrap { height: 44vh; height: 44dvh; } #start { gap: 3vh; } }
+/* Landscape: two columns, nothing scrolls. Left = question, status/caption, actions, "ask again".
+   Right = the answer text or the image, filling the full height. */
+@media (orientation: landscape) {
+  #start { gap: 3vh; }
+  body[data-layout="columns"] #chat.active { display: grid; overflow: hidden;
+    grid-template-columns: minmax(0, 36%) minmax(0, 1fr); grid-template-rows: auto auto auto auto 1fr auto;
+    column-gap: 4vw; padding: 1vh 4vw 1vh; }
+  body[data-layout="columns"] #thread, body[data-layout="columns"] #chat .bot { display: contents; }
+  body[data-layout="columns"] #chat .user { grid-column: 1; grid-row: 1; align-self: start; justify-self: start; max-width: 100%;
+    font-size: clamp(18px, 2.4vw, 34px); padding: 16px 24px; border-radius: 24px; }
+  body[data-layout="columns"] #chat .status { grid-column: 1; grid-row: 2; margin-top: 3vh; }
+  body[data-layout="columns"] #chat .caption { grid-column: 1; grid-row: 2; margin-top: 3vh; font-size: clamp(18px, 2.4vw, 34px); line-height: 1.3; }
+  body[data-layout="columns"] #chat .cite { grid-column: 1; grid-row: 3; margin-top: 2vh; justify-self: start; }
+  body[data-layout="columns"] #chat .actions { grid-column: 1; grid-row: 4; margin-top: 2vh; }
+  body[data-layout="columns"] #againWrap { grid-column: 1; grid-row: 6; justify-content: flex-start; padding: 0 0 1vh; min-height: 0; }
+  body[data-layout="columns"] #againBtn { font-size: clamp(17px, 2.2vw, 30px); padding: 16px 30px; }
+  body[data-layout="columns"] #chat .answer:not(.caption), body[data-layout="columns"] #chat .imgwrap { grid-column: 2; grid-row: 1 / -1; min-height: 0; }
+  body[data-layout="columns"] #chat .answer:not(.caption) { align-self: stretch; overflow: hidden; font-size: clamp(22px, 3.4vw, 54px); }
+  body[data-layout="columns"] #chat .imgwrap { height: auto; align-self: stretch; }
+  body[data-layout="stacked"] .imgwrap { height: 44vh; height: 44dvh; }
+}
+@media (orientation: landscape) and (max-height: 900px) {
+  header { min-height: 56px; padding-top: 8px; padding-bottom: 2px; }
+  footer.disclaimer { padding: 0 20px 6px; font-size: clamp(12px, 1.5vw, 16px); }
+}
 @media (max-width: 600px) {
   header { padding: 10px 14px 4px 18px; min-height: 64px; }
   .brand .model { font-size: .7em; }
@@ -180,7 +204,7 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
 }
 </style>
 </head>
-<body data-bot="claude">
+<body data-bot="claude" data-layout="columns">
 <div id="app">
   <header>
     <div class="brand"><span id="brandName">Claude</span><span class="model" id="brandModel"></span></div>
@@ -222,6 +246,9 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
       </div>
       <p class="warn" id="warn"></p></div>
 
+    <div class="setting"><div class="label">Landscape layout</div>
+      <div class="seg" data-key="layout"><button data-val="columns">Two columns</button><button data-val="stacked">Stacked</button></div></div>
+
     <div class="setting"><div class="label">Thinking time</div>
       <div class="seg" data-key="think"><button data-val="slow">Slow</button><button data-val="normal">Normal</button><button data-val="fast">Fast</button></div></div>
 
@@ -251,7 +278,7 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
   var C = window.HALLOWEEN_CONTENT || {};
   var AUTO = window.HALLOWEEN_AUTO_IMAGES || [];
   var KEY = "halloweenChat.settings.v1";
-  var DEFAULTS = { bot: "claude", hallucinations: true, images: true, speed: "normal", think: "normal", idle: 45, fullscreen: true };
+  var DEFAULTS = { bot: "claude", hallucinations: true, images: true, speed: "normal", think: "normal", layout: "columns", idle: 45, fullscreen: true };
   var SPEED_MS = { slow: 110, normal: 60, fast: 25 };
   // Thinking time: [min, max] ms for the "thinking" dots, the image "generating" wait, and the pause before the caption
   var THINK = {
@@ -338,6 +365,7 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
   function applyTheme() {
     var b = bot();
     document.body.setAttribute("data-bot", S.bot);
+    document.body.setAttribute("data-layout", S.layout === "stacked" ? "stacked" : "columns");
     $("brandName").textContent = b.name;
     $("brandModel").textContent = b.model || "";
     $("disclaimer").textContent = b.disclaimer || "";
@@ -414,8 +442,25 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
     })();
   }
 
+  // Landscape: shrink the answer's font until the whole text fits its column (measured before typing,
+  // so the text never jumps or scrolls while it types).
+  function isLandscape() { return S.layout !== "stacked" && window.matchMedia("(orientation: landscape)").matches; }
+  function fitAnswer(p, text) {
+    p.style.fontSize = "";
+    if (!isLandscape()) return;
+    p.style.visibility = "hidden"; p.textContent = text + " \u258D";
+    var size = parseFloat(getComputedStyle(p).fontSize), min = 16;
+    while (p.scrollHeight > p.clientHeight + 1 && size > min) { size = Math.max(min, size * 0.93); p.style.fontSize = size + "px"; }
+    p.textContent = ""; p.style.visibility = "";
+  }
+  window.addEventListener("resize", function () {
+    var p = document.querySelector("#chat .answer:not(.caption)");
+    if (state === "chat" && p && !finishTyping) { var t = p.textContent; fitAnswer(p, t); p.textContent = t; }
+  });
+
   function renderText(block, item) {
     var p = el("p", "answer"); block.appendChild(p);
+    fitAnswer(p, item.answer || "");
     typeInto(p, item.answer || "", function () {
       if (item.source) {
         var c = el("div", "cite"); c.textContent = "📎 " + item.source; block.appendChild(c);
@@ -509,7 +554,7 @@ footer.disclaimer { flex: none; text-align: center; color: var(--muted); font-si
     btn.addEventListener("click", function () {
       var k = btn.parentNode.getAttribute("data-key"), v = btn.getAttribute("data-val");
       S[k] = (k === "idle") ? Number(v) : (v === "true" ? true : v === "false" ? false : v);
-      if (k === "bot") applyTheme();
+      if (k === "bot" || k === "layout") applyTheme();
       renderSettings();
     });
   });
